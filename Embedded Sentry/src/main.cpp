@@ -1,3 +1,5 @@
+/*Adding this to test*/
+
 /*****************************************************************
   LSM9DS1_Basic_I2C.ino
   SFE_LSM9DS1 Library Simple Example Code - I2C Interface
@@ -249,6 +251,7 @@ void printAttitude(float ax, float ay, float az, float mx, float my, float mz)
   pitch *= 180.0 / PI;
   roll  *= 180.0 / PI;
 
+  // Print
   Serial.print("Pitch, Roll: ");
   Serial.print(pitch, 2);
   Serial.print(", ");
