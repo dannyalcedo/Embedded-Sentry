@@ -1,4 +1,3 @@
-
 #include <Wire.h>
 #include <SPI.h>
 #include <SparkFunLSM9DS1.h>
@@ -16,9 +15,9 @@ void printGyro();
 void printAccel();
 void printMag();
 void printAttitude(float axS, float ayS, float azS, float mxS, float myS, float mzS);
-void blinkReg(int times);
-void blinkSlow(int times);
-void blinkLong(int howlong);
+void blinkReg(int times)
+void blinkSlow(int times)
+void blinkLong(int howlong)
 
 float accelPre[3][10]; //2D array for smoothing accel values
 float magPre[3][10]; //2D array for smoothing mag values
