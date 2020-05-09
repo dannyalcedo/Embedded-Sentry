@@ -24,12 +24,17 @@ static unsigned long lastPrint = 0; // Keep track of print time
 void printGyro();
 void printAccel();
 void printMag();
-void printAttitude(float axS, float ayS, float azS, float mxS, float myS, float mzS);
+void printAttitude(float axS, float ayS, float azS, float mxS, float myS, float mzS, float settingOrigin[10][3], unsigned char index);
+void printArray(float settingOrigin[10][3]);
 
 float accelPre[3][10]; //2D array for smoothing accel values
 float magPre[3][10]; //2D array for smoothing mag values
 
+float settingOrigin[10][3]; //2D array for storing averaged values for setting origin
+float avgOrigin[3]; //array to hold final averaged stationary positions at origin
+
 unsigned char currVal = 0; //current index for changing
+unsigned char index = 0; //indexing for origin setting
 
 void setup()
 {
@@ -95,15 +100,22 @@ void loop()
       avgMag[i] = (magPre[i][0] + magPre[i][1] + magPre[i][2]+magPre[i][3] + magPre[i][4] + magPre[i][5]+magPre[i][6] + magPre[i][7] + magPre[i][8]+magPre[i][9])/10;
     }
 
+    if(index == 10){
+      Serial.println("triggered==10");
+      index = 0;
+      Serial.println(index);
+      printArray(settingOrigin);
+    }
+    else {
+      Serial.println(index);
+      index = index + 1;
+    }
+
     // Print the heading and orientation for fun!
     // Call print attitude. The LSM9DS1's mag x and y
     // axes are opposite to the accelerometer, so my, mx are
     // substituted for each other.
-//    printAttitude(avgAccel[0], avgAccel[1], avgAccel[2], -avgMag[0], -avgMag[1], avgMag[2]);
-                
-//    printAttitude(imu.ax, imu.ay, imu.az, -imu.my, -imu.mx, imu.mz);
-
-    printAttitude(avgAccel[0], avgAccel[1], avgAccel[2], -avgMag[0], -avgMag[1], avgMag[2]);
+    printAttitude(avgAccel[0], avgAccel[1], avgAccel[2], -avgMag[0], -avgMag[1], avgMag[2], settingOrigin, index);
 
     Serial.println();
 
@@ -118,7 +130,7 @@ void loop()
 // http://cache.freescale.com/files/sensors/doc/app_note/AN3461.pdf?fpsp=1
 // Heading calculations taken from this app note:
 // http://www51.honeywell.com/aero/common/documents/myaerospacecatalog-documents/Defense_Brochures-documents/Magnetic__Literature_Application_notes-documents/AN203_Compass_Heading_Using_Magnetometers.pdf
-void printAttitude(float axS, float ayS, float azS, float mxS, float myS, float mzS)
+void printAttitude(float axS, float ayS, float azS, float mxS, float myS, float mzS, float settingOrigin[10][3], unsigned char index)
 {
 
   //for smoothed
@@ -144,48 +156,44 @@ void printAttitude(float axS, float ayS, float azS, float mxS, float myS, float 
   pitchS *= 180.0 / PI;
   rollS  *= 180.0 / PI;
 
-  //quantizing pitch
-  if ((pitchS < -50) && (pitchS > -70)){
-    quantPitch = 1;
-  }
-  else if ((pitchS < 77) && (pitchS > 60)){
-    quantPitch = -1;
-  }
-  else {
-    quantPitch = 0;
-  }
-
-  //quantizing roll
-  if ((rollS < -75) && (rollS > -102)){
-    quantRoll = 1;
-  }
-  else if ((rollS < 71) && (rollS > 100)){
-    quantRoll = -1;
-  }
-  else {
-    quantRoll = 0;
-  }
-
-  //quantizing heading (yaw)
-  if ((headingS < -107) && (headingS > -116)){
-    quantHeading = 1;
-  }
-  else if ((headingS < -20) && (headingS > -36)){
-    quantHeading = -1;
-  }
-  else {
-    quantHeading = 0;
-  }
-//  Serial.print(pitchS, 2);
-//  Serial.print(" ");
-//  Serial.print(rollS, 2);
-//  Serial.print(" ");
-//  Serial.print(headingS, 2);
-//  Serial.print(" ");
-
-  Serial.print(quantPitch, 2);
+  
+  Serial.print("P:");
+  Serial.print(pitchS, 2);
+  Serial.print(" R:");
+  Serial.print(rollS, 2);
+  Serial.print(" Y:");
+  Serial.print(headingS, 2);
   Serial.print(" ");
-  Serial.print(quantRoll, 2);
+
+  settingOrigin[index][0] = pitchS;
+  settingOrigin[index][1] = rollS;
+  settingOrigin[index][2] = headingS;
+}
+
+void printArray(float settingOrigin[10][3])
+{
+  float avgP = 0;
+  float avgR = 0;
+  float avgH = 0;
+  for(int i = 0; i < 10; i = i + 1){
+    avgP = avgP + settingOrigin[i][0];
+    avgR = avgP + settingOrigin[i][1];
+    avgH = avgP + settingOrigin[i][2];
+  }
+
+  avgP = avgP/10;
+  avgR = avgR/10;
+  avgR = avgR/10;
+
+  avgOrigin[0] = avgP;
+  avgOrigin[1] = avgR;
+  avgOrigin[2] = avgH;
+
+  Serial.print("avgP:");
+  Serial.print(avgOrigin[0], 2);
+  Serial.print(" avgR:");
+  Serial.print(avgOrigin[1], 2);
+  Serial.print(" avgY:");
+  Serial.print(avgOrigin[2], 2);
   Serial.print(" ");
-  Serial.print(quantHeading, 2);
 }
