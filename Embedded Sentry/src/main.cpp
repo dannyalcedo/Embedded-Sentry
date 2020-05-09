@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <SPI.h>
 #include <SparkFunLSM9DS1.h>
+#include <stdlib.h>
 
 LSM9DS1 imu;
 
@@ -9,23 +10,18 @@ static unsigned long lastPrint = 0; // Keep track of print time
 
 #define DECLINATION -13.68 // Declination (degrees) in Shelton, CT.
 
-//Function Definitions
-void printSmoothAccel(float ax, float ay, float az);
+//Function definitions
 void printRawAccel();
-void blinkReg(int times);
-void blinkSlow(int times);
-void blinkLong(int howlong);
+unsigned char checkingInput(float accelVals[3][5]);
 
 // Global Variables
-float accelPre[3][5]; //2D array for smoothing accel values
+float accelVals[3][5];
 unsigned char currVal = 0; //current index for changing
-unsigned char keyUp = 0;
-unsigned char keyDown = 1;
-unsigned char keyLeft = 2;
-unsigned char keyRight = 3;
-unsigned char keyOut = 4;
-unsigned char keyIn = 5;
-
+unsigned char state = 0;
+// 0 = x direction
+// 1 = y direction
+// 2 = z direction
+unsigned char keyVals[3] = {1, 2, 0}; //move in x, then move in y, then move in z
 
 void setup() {
   Serial.begin(115200);
@@ -41,26 +37,85 @@ void loop() {
   if ( imu.accelAvailable() )
   {
     imu.readAccel();
-
-    accelPre[0][currVal] =  imu.ax;
-    accelPre[1][currVal] =  imu.ay;
-    accelPre[2][currVal] =  imu.az;
+    accelVals[0][currVal] =  imu.ax;
+    accelVals[1][currVal] =  imu.ay;
+    accelVals[2][currVal] =  imu.az;
   }
 
   if (currVal == 4){currVal = 0;}
   else {currVal = currVal + 1;}
-
+  
   if ((lastPrint + PRINT_SPEED) < millis())
   {
-    float avgAccel[3];
-
-    for (int i = 0; i < 3; i = i+1){
-      avgAccel[i] = (accelPre[i][0] + accelPre[i][1] + accelPre[i][2]+accelPre[i][3] + accelPre[i][4])/5;
+    switch(state){
+      case 0 :
+        if (checkingInput(accelVals) == 3){
+          Serial.print("Awaiting First Key Input");
+          state = 0;
+          break;
+        }
+        else if (checkingInput(accelVals) == keyVals[0]){
+          Serial.println();
+          Serial.println("Your first input was correct! Now what's the second key value?");
+          state = 1;
+          break;
+        }
+        else if ((checkingInput(accelVals) != keyVals[0])){
+          Serial.println();
+          Serial.println("Your first input was not correct! Please start again...");
+          state = 0;
+          break;
+        }
+        break;
+      case 1 :
+        if (checkingInput(accelVals) == 3){
+          Serial.print("Awaiting Second Key Input");
+          state = 1;
+          break;
+        }
+        else if (checkingInput(accelVals) == keyVals[1]){
+          Serial.println();
+          Serial.println("Your second input was correct! Now what's the final key value?");
+          state = 2;
+          break;
+        }
+        else if ((checkingInput(accelVals) != keyVals[1])){
+          Serial.println();
+          Serial.println("Your second input was not correct! Please start again...");
+          state = 0;
+          break;
+        }
+        break;
+      case 2 :
+        //break
+        if (checkingInput(accelVals) == 3){
+          Serial.print("Awaiting Final Key Input");
+          state = 2;
+          break;
+        }
+        else if (checkingInput(accelVals) == keyVals[2]){
+          Serial.println();
+          Serial.println("Your Final input was correct!");
+          state = 3;
+          break;
+        }
+        else if ((checkingInput(accelVals) != keyVals[2])){
+          Serial.println();
+          Serial.println("Your Final input was not correct! Please start again...");
+          state = 0;
+          break;
+        }
+        break;
+      case 3 :
+        digitalWrite(LED_BUILTIN, HIGH);   
+        delay(100);                       
+        digitalWrite(LED_BUILTIN, LOW);    
+        delay(100);
+        Serial.println("* * * You've correctly input the key! You should see the LED on the MC blink! * * *");
+        Serial.println("                Reset the MC if you would like to try again");
     }
-
-    // printSmoothAccel(avgAccel[0], avgAccel[1], avgAccel[2]); // Print "A: ax, ay, az"
-    Serial.println();
-    printRawAccel();
+//    printRawAccel();
+//    checkingInput(accelVals);
     Serial.println();
 
     lastPrint = millis(); // Update lastPrint time
@@ -68,7 +123,7 @@ void loop() {
 }
 
 void printRawAccel() {
-  Serial.print("Smooth A: ");
+  Serial.print("A: ");
   float accelXms2 = imu.calcAccel(imu.ax) * 9.8066;
   float accelYms2 = imu.calcAccel(imu.ay) * 9.8066;
   float accelZms2 = imu.calcAccel(imu.az) * 9.8066;
@@ -79,39 +134,26 @@ void printRawAccel() {
   Serial.print(accelZms2, 2);
 }
 
-void printSmoothAccel(float ax, float ay, float az) {
-  Serial.print("  Raw A: ");
-  float accelXms2 = imu.calcAccel(ax) * 9.8066;
-  float accelYms2 = imu.calcAccel(ay) * 9.8066;
-  float accelZms2 = imu.calcAccel(az) * 9.8066;
-  Serial.print(accelXms2, 2);
-  Serial.print(", ");
-  Serial.print(accelYms2, 2);
-  Serial.print(", ");
-  Serial.print(accelZms2, 2);
-}
-
-void blinkReg(int times){
-  for (int i = 0; i < times; i = i + 1){
-    digitalWrite(LED_BUILTIN, HIGH);   
-    delay(150);                       
-    digitalWrite(LED_BUILTIN, LOW);    
-    delay(150);
+unsigned char checkingInput(float accelVals[3][5]){
+  for (int i = 0; i < 5; i = i + 1){
+    if (abs(imu.calcAccel(accelVals[0][i])*9.8066) > 4){
+//      Serial.println(imu.calcAccel(accelVals[0][i])*9.8066);
+      //Serial.println("You moved in the X direction");
+      return 0;
+    }
+    else if (abs(imu.calcAccel(accelVals[1][i])*9.8066) > 3){
+//      Serial.println(imu.calcAccel(accelVals[1][i])*9.8066);
+      //Serial.println("You moved in the Y direction");
+      return 1;
+    }
+    else if ((imu.calcAccel(accelVals[2][i])*9.8066) > 11 | (imu.calcAccel(accelVals[2][i])*9.8066) < 7){
+//      Serial.println(imu.calcAccel(accelVals[2][i])*9.8066);
+      //Serial.println("You moved in the Z direction");
+      return 2;
+    }
+//    else {
+//      Serial.println("Didn't move");
+//    }
   }
-}
-
-void blinkSlow(int times){
-  for (int i = 0; i < times; i = i + 1){
-    digitalWrite(LED_BUILTIN, HIGH);   
-    delay(500);                       
-    digitalWrite(LED_BUILTIN, LOW);    
-    delay(500);
-  }
-}
-
-void blinkLong(int howlong){
-  digitalWrite(LED_BUILTIN, HIGH);   
-    delay(howlong*1000);                       
-    digitalWrite(LED_BUILTIN, LOW);    
-    delay(1000);
+  return 3;
 }

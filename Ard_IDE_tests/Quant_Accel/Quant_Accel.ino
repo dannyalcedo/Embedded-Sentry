@@ -12,11 +12,16 @@ static unsigned long lastPrint = 0; // Keep track of print time
 
 //Function definitions
 void printRawAccel();
-void checkingInput(float accelVals[3][5]);
+unsigned char checkingInput(float accelVals[3][5]);
 
 // Global Variables
 float accelVals[3][5];
 unsigned char currVal = 0; //current index for changing
+unsigned char state = 0;
+// 0 = x direction
+// 1 = y direction
+// 2 = z direction
+unsigned char keyVals[3] = {1, 2, 0}; //move in x, then move in y, then move in z
 
 void setup() {
   Serial.begin(115200);
@@ -42,8 +47,75 @@ void loop() {
   
   if ((lastPrint + PRINT_SPEED) < millis())
   {
+    switch(state){
+      case 0 :
+        if (checkingInput(accelVals) == 3){
+          Serial.print("Awaiting First Key Input");
+          state = 0;
+          break;
+        }
+        else if (checkingInput(accelVals) == keyVals[0]){
+          Serial.println();
+          Serial.println("Your first input was correct! Now what's the second key value?");
+          state = 1;
+          break;
+        }
+        else if ((checkingInput(accelVals) != keyVals[0])){
+          Serial.println();
+          Serial.println("Your first input was not correct! Please start again...");
+          state = 0;
+          break;
+        }
+        break;
+      case 1 :
+        if (checkingInput(accelVals) == 3){
+          Serial.print("Awaiting Second Key Input");
+          state = 1;
+          break;
+        }
+        else if (checkingInput(accelVals) == keyVals[1]){
+          Serial.println();
+          Serial.println("Your second input was correct! Now what's the final key value?");
+          state = 2;
+          break;
+        }
+        else if ((checkingInput(accelVals) != keyVals[1])){
+          Serial.println();
+          Serial.println("Your second input was not correct! Please start again...");
+          state = 0;
+          break;
+        }
+        break;
+      case 2 :
+        //break
+        if (checkingInput(accelVals) == 3){
+          Serial.print("Awaiting Final Key Input");
+          state = 2;
+          break;
+        }
+        else if (checkingInput(accelVals) == keyVals[2]){
+          Serial.println();
+          Serial.println("Your Final input was correct!");
+          state = 3;
+          break;
+        }
+        else if ((checkingInput(accelVals) != keyVals[2])){
+          Serial.println();
+          Serial.println("Your Final input was not correct! Please start again...");
+          state = 0;
+          break;
+        }
+        break;
+      case 3 :
+        digitalWrite(LED_BUILTIN, HIGH);   
+        delay(100);                       
+        digitalWrite(LED_BUILTIN, LOW);    
+        delay(100);
+        Serial.println("* * * You've correctly input the key! You should see the LED on the MC blink! * * *");
+        Serial.println("                Reset the MC if you would like to try again");
+    }
 //    printRawAccel();
-    checkingInput(accelVals);
+//    checkingInput(accelVals);
     Serial.println();
 
     lastPrint = millis(); // Update lastPrint time
@@ -62,19 +134,26 @@ void printRawAccel() {
   Serial.print(accelZms2, 2);
 }
 
-void checkingInput(float accelVals[3][5]){
+unsigned char checkingInput(float accelVals[3][5]){
   for (int i = 0; i < 5; i = i + 1){
     if (abs(imu.calcAccel(accelVals[0][i])*9.8066) > 4){
-      Serial.println("You moved in the X direction");
+//      Serial.println(imu.calcAccel(accelVals[0][i])*9.8066);
+      //Serial.println("You moved in the X direction");
+      return 0;
     }
     else if (abs(imu.calcAccel(accelVals[1][i])*9.8066) > 3){
-      Serial.println("You moved in the Y direction");
+//      Serial.println(imu.calcAccel(accelVals[1][i])*9.8066);
+      //Serial.println("You moved in the Y direction");
+      return 1;
     }
     else if ((imu.calcAccel(accelVals[2][i])*9.8066) > 11 | (imu.calcAccel(accelVals[2][i])*9.8066) < 7){
-      Serial.println("You moved in the Z direction");
+//      Serial.println(imu.calcAccel(accelVals[2][i])*9.8066);
+      //Serial.println("You moved in the Z direction");
+      return 2;
     }
-    else {
-      Serial.println("You didn't move");
-    }
+//    else {
+//      Serial.println("Didn't move");
+//    }
   }
+  return 3;
 }
