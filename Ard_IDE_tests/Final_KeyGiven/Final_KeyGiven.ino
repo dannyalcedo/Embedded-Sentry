@@ -1,4 +1,5 @@
-// The key will only have three values
+// In this script, the key is hard-coded in 
+// the key is hard-coded into having only 3 values
 
 #include <Wire.h> // default need for IMU
 #include <SPI.h> // default need for IMU
@@ -16,11 +17,10 @@ unsigned char checkingInput(float accelVals[3][5]); // will return unsigned char
                                                     // 0 = x-axis, 1 = y-axis, 2 = z-axis, 3 = no movement
 
 // Global Variables
-float accelVals[3][5]; // 2D vector acting as a window of sensor values in the x, y, and z axis' 
+float accelVals[3][5]; // 2D vector acting as a window of sensor values in the x, y, and z axis'
 unsigned char currVal = 0; // current index for iterating through accelVals
 unsigned char state = 0; // keep track of current state
-unsigned char keyVals[3];
-unsigned char needKey[3];
+unsigned char keyVals[3] = {1, 2, 0}; //move in x, then move in y, then move in z
 
 void setup() {
   Serial.begin(115200); // setting baud rate
@@ -47,105 +47,64 @@ void loop() {
   if ((lastPrint + PRINT_SPEED) < millis())
   {
     switch(state){
-      case 0 :
-        Serial.print("Hello! You have yet to set a key. Please complete the following prompts to do so:");
-        state = 1;
-        break;
-      case 1 :
+      case 0 : // checking for first movement to match first key value
         if (checkingInput(accelVals) == 3){ // no movement detected
-          Serial.println("Awaiting First Key Input");
-          state = 1;
-          break;
-        }
-        else { // setting first key value
-          keyVals[0] = checkingInput(accelVals);
-          Serial.println("Your first key value has been accepted");
-          state = 2;
-          break;
-        }
-      case 2 :
-        if (checkingInput(accelVals) == 3){ // no movement detected
-          Serial.println("Awaiting Second Key Input");
-          state = 2;
-          break;
-        }
-        else { // setting second key value
-          keyVals[1] = checkingInput(accelVals);
-          Serial.println("Your second key value has been accepted");
-          state = 3;
-          break;
-        }
-      case 3 :
-        if (checkingInput(accelVals) == 3){ // no movement detected
-          Serial.println("Awaiting Final Key Input");
-          state = 3;
-          break;
-        }
-        else { // setting first key value
-          keyVals[0] = checkingInput(accelVals);
-          Serial.println("Your Final key value has been accepted");
-          Serial.println("You have successfuly input a 3-value key. Now you will be prompted to insert your key to unlock");
-          state = 4;
-          break;
-        }
-      case 4 : // checking for first movement to match first key value
-        if (checkingInput(accelVals) == 3){ // no movement detected
-          Serial.print("Awaiting First Key Value");
-          state = 4;
+          Serial.print("Awaiting First Key Input");
+          state = 0;
           break;
         }
         else if (checkingInput(accelVals) == keyVals[0]){ // if input from sensor is the first value in key
           Serial.println();
           Serial.println("Your first input was correct! Now what's the second key value?");
-          state = 5;
+          state = 1;
           break;
         }
         else if ((checkingInput(accelVals) != keyVals[0])){ // if first input from sensor is NOT first value in key
           Serial.println();
           Serial.println("Your first input was not correct! Please start again...");
-          state = 4;
+          state = 0;
           break;
         }
         break;
-      case 5 : // checking for second movement to match second key value
+      case 1 : // checking for second movement to match second key value
         if (checkingInput(accelVals) == 3){
           Serial.print("Awaiting Second Key Input");
-          state = 5;
+          state = 1;
           break;
         }
         else if (checkingInput(accelVals) == keyVals[1]){
           Serial.println();
           Serial.println("Your second input was correct! Now what's the final key value?");
-          state = 6;
+          state = 2;
           break;
         }
         else if ((checkingInput(accelVals) != keyVals[1])){
           Serial.println();
           Serial.println("Your second input was not correct! Please start again...");
-          state = 4;
+          state = 0;
           break;
         }
         break;
-      case 6 : // checking for final movement to match final key value
+      case 2 : // checking for final movement to match final key value
         if (checkingInput(accelVals) == 3){ 
           Serial.print("Awaiting Final Key Input");
-          state = 6;
+          state = 2;
           break;
         }
         else if (checkingInput(accelVals) == keyVals[2]){
           Serial.println();
           Serial.println("Your Final input was correct!");
-          state = 7;
+          state = 3;
           break;
         }
         else if ((checkingInput(accelVals) != keyVals[2])){
           Serial.println();
           Serial.println("Your Final input was not correct! Please start again...");
-          state = 4;
+          state = 0;
           break;
         }
         break;
-      case 7 : // key was input correctly
+      case 3 : // key was input correctly
         // blinking LED to show we've correctly input the key
         digitalWrite(LED_BUILTIN, HIGH);
         delay(100);                       
@@ -174,7 +133,7 @@ void printRawAccel() {
   Serial.print(accelZms2, 2);
 }
 
-unsigned char checkingInput(float accelVals[3][5]) {
+unsigned char checkingInput(float accelVals[3][5]){
   for (int i = 0; i < 5; i = i + 1){
     if (abs(imu.calcAccel(accelVals[0][i])*9.8066) > 4){
       return 0; // moved in x direction
@@ -182,7 +141,7 @@ unsigned char checkingInput(float accelVals[3][5]) {
     else if (abs(imu.calcAccel(accelVals[1][i])*9.8066) > 3){
       return 1; // moved in y direction
     }
-    else if (((imu.calcAccel(accelVals[2][i])*9.8066) > 11) | ((imu.calcAccel(accelVals[2][i])*9.8066) < 7)){
+    else if ((imu.calcAccel(accelVals[2][i])*9.8066) > 11 | (imu.calcAccel(accelVals[2][i])*9.8066) < 7){
       return 2; // moved in z direction
     }
   }

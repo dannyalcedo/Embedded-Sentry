@@ -1,4 +1,5 @@
-// The key will only have three values
+// In this script, the key is input by the user but it is not consistent 
+// the key is hard-coded into having only 3 values
 
 #include <Wire.h> // default need for IMU
 #include <SPI.h> // default need for IMU

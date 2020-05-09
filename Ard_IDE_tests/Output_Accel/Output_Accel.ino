@@ -47,7 +47,7 @@ void loop() {
       avgAccel[i] = (accelPre[i][0] + accelPre[i][1] + accelPre[i][2]+accelPre[i][3] + accelPre[i][4])/5;
     }
 
-    printSmoothAccel(avgAccel[0], avgAccel[1], avgAccel[2]); // Print "A: ax, ay, az"
+//    printSmoothAccel(avgAccel[0], avgAccel[1], avgAccel[2]); // Print "A: ax, ay, az"
     printRawAccel();
     Serial.println();
 
