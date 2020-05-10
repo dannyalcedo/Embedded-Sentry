@@ -15,15 +15,21 @@ static unsigned long lastPrint = 0; // Keep track of print time
 void printRawAccel(); // debug function to see accelerometer values
 unsigned char checkingInput(float accelVals[3][5]); // will return unsigned char mapped to a specifc movement
                                                     // 0 = x-axis, 1 = y-axis, 2 = z-axis, 3 = no movement
+void blinkGreen();
+void blinkRed();
 
 // Global Variables
 float accelVals[3][5]; // 2D vector acting as a window of sensor values in the x, y, and z axis'
 unsigned char currVal = 0; // current index for iterating through accelVals
 unsigned char state = 0; // keep track of current state
-unsigned char keyVals[3] = {1, 2, 0}; //move in x, then move in y, then move in z
+unsigned char keyVals[3] = {2, 1, 0}; //move in y, then move in z, then move in x
+int LEDRIGHT = 3;
+int LEDWRONG = 4;
 
 void setup() {
   Serial.begin(115200); // setting baud rate
+  pinMode(LEDRIGHT, OUTPUT);
+  pinMode(LEDWRONG, OUTPUT);
   Wire.begin();
   if (imu.begin() == false) { // if connection fails
     Serial.println("Failed to communicate with LSM9DS1.");
@@ -56,12 +62,14 @@ void loop() {
         else if (checkingInput(accelVals) == keyVals[0]){ // if input from sensor is the first value in key
           Serial.println();
           Serial.println("Your first input was correct! Now what's the second key value?");
+          blinkGreen();  
           state = 1;
           break;
         }
         else if ((checkingInput(accelVals) != keyVals[0])){ // if first input from sensor is NOT first value in key
           Serial.println();
           Serial.println("Your first input was not correct! Please start again...");
+          blinkRed();
           state = 0;
           break;
         }
@@ -75,12 +83,14 @@ void loop() {
         else if (checkingInput(accelVals) == keyVals[1]){
           Serial.println();
           Serial.println("Your second input was correct! Now what's the final key value?");
+          blinkGreen();
           state = 2;
           break;
         }
         else if ((checkingInput(accelVals) != keyVals[1])){
           Serial.println();
           Serial.println("Your second input was not correct! Please start again...");
+          blinkRed();
           state = 0;
           break;
         }
@@ -94,24 +104,24 @@ void loop() {
         else if (checkingInput(accelVals) == keyVals[2]){
           Serial.println();
           Serial.println("Your Final input was correct!");
+          blinkGreen();
           state = 3;
           break;
         }
         else if ((checkingInput(accelVals) != keyVals[2])){
           Serial.println();
           Serial.println("Your Final input was not correct! Please start again...");
+          blinkRed();   
+          delay(100);
           state = 0;
           break;
         }
         break;
       case 3 : // key was input correctly
         // blinking LED to show we've correctly input the key
-        digitalWrite(LED_BUILTIN, HIGH);
-        delay(100);                       
-        digitalWrite(LED_BUILTIN, LOW);    
-        delay(100);
-        Serial.println("* * * You've correctly input the key! You should see the LED on the MC blink! * * *");
-        Serial.println("                Reset the MC if you would like to try again");
+        blinkGreen();
+        Serial.println("* * * You've correctly input the key! You should see the Green LED blink! * * *");
+        Serial.println("               Reset the MC if you would like to try again");
     }
 //    printRawAccel(); // for debugging perposes
     Serial.println();
@@ -141,9 +151,31 @@ unsigned char checkingInput(float accelVals[3][5]){
     else if (abs(imu.calcAccel(accelVals[1][i])*9.8066) > 3){
       return 1; // moved in y direction
     }
-    else if ((imu.calcAccel(accelVals[2][i])*9.8066) > 11 | (imu.calcAccel(accelVals[2][i])*9.8066) < 7){
+    else if (((imu.calcAccel(accelVals[2][i])*9.8066) > 11) | ((imu.calcAccel(accelVals[2][i])*9.8066) < 7)){
       return 2; // moved in z direction
     }
   }
   return 3; // did not move
+}
+
+void blinkGreen(){
+  digitalWrite(LEDRIGHT, HIGH);
+  delay(100);                       
+  digitalWrite(LEDRIGHT, LOW);    
+  delay(100);
+  digitalWrite(LEDRIGHT, HIGH);
+  delay(100);                       
+  digitalWrite(LEDRIGHT, LOW);    
+  delay(100);
+}
+
+void blinkRed(){
+  digitalWrite(LEDWRONG, HIGH);
+  delay(100);                       
+  digitalWrite(LEDWRONG, LOW);    
+  delay(100);
+  digitalWrite(LEDWRONG, HIGH);
+  delay(100);                       
+  digitalWrite(LEDWRONG, LOW);    
+  delay(100);
 }
